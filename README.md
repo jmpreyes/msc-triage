@@ -1,3 +1,3 @@
-# Submission for MSc thesis 2019
+# Submission for MSc 2019 final report
 
-Please extract folder to view "Attachments" and "Supporting Material".
+Please extract folder to view Attachments folder (appendices) and supporting material (source code, README, etc.).
