@@ -1,0 +1,130 @@
+-- $ProjectHeader: use 0.393 Wed, 16 May 2007 14:10:28 +0200 opti $
+
+-- Example illustrating pre- and postconditions
+
+model healthcare
+enum Patient_Status{Expectant, Immediate, Delyed, Minor}
+enum Triage_Speciality{Doctor, Nurse, Technician}
+enum Tech_Speciality{Diagnostic_Radiographer, Healthcare_Assistant, Paramedic}
+enum Doc_Speciality{Emergency, Surgery, Anaesthesiology, Orthopaedics, Neurosurgery, Ophthamology, Cardiolog, Nephrology, Radiology }
+----- enum Doc_Special{EmergencyDoc, SurgicalDoc, CardiologDoc } ---
+enum Gender{Male, Female}
+---------------------------------------------------------------------------------------
+class Hospital
+attributes
+    name:String
+	phone:Integer
+	address:String
+end
+
+class Departments
+attributes
+	name:String
+	id:String
+	loc:String
+	phone:String
+end
+
+class People
+attributes
+	fname:String
+	lname:String
+	gender:Gender
+	birthday:String
+end
+
+class AE_Department < Departments
+attributes
+	size : Integer
+	capacity: Integer
+end
+
+class Patient < People
+attributes
+	patientNo:String
+ 	dateadmit:String
+	timeadmit:String
+	accident:Boolean
+	status: Patient_Status
+	assigned:Boolean
+end
+
+class Staff  < People
+attributes
+	id:Integer	 
+	triagestaff:Boolean
+	address:String
+end
+
+class Triage_Staff < Staff
+attributes
+	triageno:Integer
+	kind:Triage_Speciality
+end
+
+class Receptionist < Staff
+end
+
+class Porter < Staff
+end
+
+class Doctor < Triage_Staff
+attributes
+	pager:Integer
+	specialization:Doc_Speciality
+	notes:String
+end
+class Nurse < Triage_Staff
+attributes
+	nurseSpecialty:String
+	pager:Integer
+end
+
+class Technicians < Triage_Staff
+attributes
+	techspecialty:Tech_Speciality
+	pager:Integer
+end
+
+---------------composition------------------
+composition Consisting between
+    Hospital[1] role  hospital
+    Departments[0..*] role departments
+end
+
+-----------  patient Associations  ------------
+
+association Admit between 
+    AE_Department[1] role department
+	Patient[0..*] role patient
+end
+association Checks between 
+    Triage_Staff[*] role staff
+	Patient[*]	role patient
+end
+association WorkFor between 
+    AE_Department[1] role department
+	Staff[1..*] role staff
+end
+--------aggregation------------------------
+
+constraints
+
+context AE_Department
+inv: self.size>0 and self.capacity>0
+inv: AE_Department.allInstances()->forAll(s|s.staff->notEmpty())
+inv: self.staff->exists(s|oclIsTypeOf(Doctor))
+
+context Staff
+inv: Staff.allInstances()->forAll(s1,s2|s1<>s2 implies s1.id <> s2.id)
+inv: Staff.allInstances()->exists(s|s.triagestaff=true)
+
+context Triage_Staff
+inv: Triage_Staff.allInstances()->exists(s|s.kind=#Doctor)
+inv: Triage_Staff.allInstances()->exists(s|s.kind=#Nurse)
+inv: Triage_Staff.allInstances()->exists(s|s.kind=#Technician)
+
+context Patient
+inv: Patient.allInstances()->forAll(p|p.status=#Expectant or p.status=#Immediate implies p.assigned=true)
+inv: Patient.allInstances()->forAll(p|p.staff->notEmpty())
+

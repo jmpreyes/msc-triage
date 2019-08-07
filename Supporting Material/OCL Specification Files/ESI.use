@@ -1,0 +1,193 @@
+model ESI
+
+-- classes
+
+class Hospital
+attributes
+  name : String
+  phone : String
+  address : String
+end
+
+class Patient
+attributes
+  firstName : String
+  lastName : String
+  id : String
+  gender : Gender
+  age : Integer
+  obtain_patient_info : Boolean
+  checked_for_immediate_intervention : Boolean
+  situation_assessed : Boolean
+  examined_if_confused : Boolean
+  examined_if_disoriented : Boolean
+  examined_if_lethargic : Boolean
+  checked_if_severe_pain : Boolean
+  checked_if_distressed : Boolean
+  number_resources_assessed : Boolean
+  resources : Integer
+  vitals_examined : Boolean
+end
+
+class TreatedPatient < Patient
+attributes
+  requiresLifeSavingIntervention : Boolean
+  highRiskSituation : Boolean
+  confused : Boolean
+  lethargic : Boolean
+  disoriented : Boolean
+  severePain : Boolean
+  distress : Boolean
+  resourcesRequired : Integer
+  heartRate : Integer
+  respiratoryRate : Integer
+  saO2 : Integer
+end
+
+class Severity
+attributes
+  severity : SeverityLevel
+operations
+  checkIfInterventionNeeded(p : TreatedPatient)
+  assessSituation(p : TreatedPatient)
+  examine(p : TreatedPatient)
+  checkForPain(p : Patient)
+  checkResourcesNeeded(p : TreatedPatient)
+  measureVitalZones(p : TreatedPatient, resources : Integer)
+end
+
+class Immediate
+operations
+  resuscitationRequired(p : TreatedPatient)
+  continuousObservation(p : TreatedPatient)
+end
+
+class VeryUrgent
+operations
+  stabilize(p : TreatedPatient)
+  monitor(p : TreatedPatient)
+end
+
+class Urgent
+operations
+  supervision(p : TreatedPatient)
+end
+
+class Minor
+operations
+  reassess(p : TreatedPatient, resources : Integer)
+end
+
+class Delayed
+operations
+  canWait(p : TreatedPatient)
+  reassess(p : TreatedPatient, resources : Integer)
+end
+
+-- associations
+
+composition ConsistsOf between
+  Hospital[1] role hospital
+  Patient[1..*] role patient
+end
+
+association WithTreatment between
+  Patient[1] role patient
+  TreatedPatient[1] role treatedPatient
+end
+
+association BasedOnSeverityLevel between
+  TreatedPatient[1] role patientTreatment
+  Severity[1] role severityLevel
+end
+
+association ImmediateSeverity between
+  Severity[1] role severityLevel
+  Immediate[1] role immediateCare
+end
+
+association VeryUrgentSeverity between
+  Severity[1] role severityLevel
+  VeryUrgent[1] role veryUrgentCare
+end
+
+association UrgentSeverity between
+  Severity[1] role severityLevel
+  Urgent[1] role urgentCare
+end
+
+association MinorSeverity between
+  Severity[1] role severityLevel
+  Minor[1] role minorCare
+end
+
+association DelayedSeverity between
+  Severity[1] role severityLevel
+  Delayed[1] role delayedCare
+end
+
+-- enumeration
+
+enum SeverityLevel {Immediate, VeryUrgent, Urgent, Minor, Delayed}
+enum Gender {Male, Female}
+
+-- constraints
+
+constraints
+
+context Hospital
+inv AtLeastOnePatient: self.patient->size() >= 1
+inv NonEmptyName: self.name <> ' ' or self.name.size > 1
+
+context p : Patient
+inv NumberOfPatients: Patient.allInstances()->size() >= 1
+inv PatientsInHospital: p.hospital->size() = 1
+inv NonEmptyFirstName: p.firstName <> ' ' or p.firstName.size > 1
+inv NonEmptyLastName: p.lastName <> ' ' or p.lastName.size > 1
+inv NonEmptyID: p.id <> ' ' or p.id.size > 1
+inv UniquePatientID: Patient.allInstances()->forAll(p, p2 | p.id <> p2.id)
+
+context Severity :: checkIfInterventionNeeded(p : TreatedPatient)
+pre: p.obtain_patient_info = true
+post: p.checked_for_immediate_intervention = true
+
+context Severity :: assessSituation(p : TreatedPatient)
+pre: p.checked_for_immediate_intervention = true
+post: p.situation_assessed = true
+
+context Severity :: examine(p : TreatedPatient)
+pre: p.situation_assessed = true
+post: p.examined_if_confused = true or p.examined_if_disoriented = true or p.examined_if_lethargic = true
+
+context Severity :: checkForPain(p : TreatedPatient)
+pre: p.situation_assessed = true
+pre: p.examined_if_confused = true or p.examined_if_disoriented = true or p.examined_if_lethargic = true
+post: p.checked_if_severe_pain = true or p.checked_if_distressed = true
+
+context Severity:: checkResourcesNeeded(p : TreatedPatient)
+pre: p.checked_if_severe_pain = true or p.checked_if_distressed = true
+post: p.number_resources_assessed = true
+
+context Severity :: measureVitalZones(p : TreatedPatient, resources: Integer)
+pre: p.number_resources_assessed = true and resources > 1
+post: p.vitals_examined = true
+
+context Immediate :: resuscitationRequired (p : TreatedPatient)
+pre: p.checked_for_immediate_intervention = true
+
+context VeryUrgent :: stabilize(p : TreatedPatient)
+pre: p.situation_assessed = true
+pre: p.examined_if_confused = true or p.examined_if_disoriented = true or p.examined_if_lethargic = true
+pre: p.checked_if_severe_pain = true or p.checked_if_distressed = true
+pre: p.vitals_examined = true
+
+context Urgent :: supervision(p : TreatedPatient)
+pre: p.vitals_examined = true
+
+context Minor :: reassess (p : TreatedPatient, resources: Integer)
+pre: p.number_resources_assessed = true
+pre: resources = 1
+
+context Delayed:: reassess (p : TreatedPatient, resources: Integer)
+pre: p.number_resources_assessed = true
+pre: resources = 0
