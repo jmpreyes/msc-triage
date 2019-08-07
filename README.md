@@ -1,3 +1,5 @@
-# Submission for MSc 2019 final report
+# Medical Triage Project
 
-Please extract .zip folder to view Attachments folder (appendices) and supporting material (source code, README, etc.).
+## Submission for MSc project
+
+I give thanks to Hao Wu and Joe Timoney for their support.
